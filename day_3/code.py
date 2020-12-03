@@ -4,8 +4,8 @@ def part1_2(inputs, slopes):
 def solve(inputs, slope):
     trees = 0
 
-    for y in range(0, len(inputs), slope[1]):
-        x = (slope[0] * (y/slope[1])) % len(inputs[0])
+    for i, y in enumerate(range(0, len(inputs), slope[1])):
+        x = (slope[0] * i) % len(inputs[0])
 
         if inputs[y][x] == "#":
             trees += 1
