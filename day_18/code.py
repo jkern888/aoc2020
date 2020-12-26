@@ -1,78 +1,63 @@
 def part1(inputs):
-    return sum(map(lambda x: x[1], map(calc_expr_no_order, inputs)))
+    return sum(map(lambda expr: eval(expr, ["+*"]), inputs))
 
 def part2(inputs):
-    return sum(map(lambda x: x[1], map(calc_expr_order, inputs)))
+    return sum(map(lambda expr: eval(expr, ["+", "*"]), inputs))
 
-def calc_expr_no_order(expr):
-    if show: 
-        print expr, "=", calc_expr(expr, False)[1]
-    return calc_expr(expr, False)
+def eval(expr, opers):
+    parsed = parse_expr(expr)[1]
+    return eval_expr(parsed, opers)
 
-def calc_expr_order(expr):
-    if show:
-        print expr, "=", calc_expr(expr, True)[1]
-    return calc_expr(expr, True)
-
-def calc_expr(expr, order=False, indent=" ", fallthrough=False):
+def parse_expr(expr):
+    rewrite = []
     i = 0
-    stack = []
+
     while i < len(expr):
-        val = expr[i]
+        read, val = read_next(expr, i)
+        i += read
 
-        if debug:
-            print indent, i, val, ": ", "".join([str(v) for v in expr]), stack
-
-        if val == "(":
-            jump, val = calc_expr(expr[i+1:], order, indent + " ", fallthrough)
-            i += jump
-
-            if fallthrough:
-                i -= 1
-            else:
-                i += 1
-
-        elif val == ")":
+        if val == ")":
             break
 
-        stack.append(val)
+        rewrite.append(val)
+    return i, rewrite
 
-        if len(stack) == 3:
-            if stack[1] == "*" and order:
-                jump, stack[2] = calc_expr([stack[2]] + expr[i+1:], order, indent + " ", True)
-                i += jump 
-            stack = [calc_stack(stack)]
+def read_next(expr, i):
+    if expr[i] == "(":
+        read, val = parse_expr(expr[i+1:])
+        return read + 1, val
 
-        i += 1
-    return i, stack[0]
+    return 1, expr[i]
 
-def calc_stack(stack):
-    left, opr, right = int(stack[0]), stack[1], int(stack[2])
+def eval_expr(parsed, opers):
+    for i, val in enumerate(parsed):
+        if type(val) is list:
+            parsed[i] = eval_expr(val, opers)
+ 
+    for oper_set in opers:
+        i = 0
+        while i < len(parsed) and len(parsed) > 1:
+            val = parsed[i]
+            if type(val) is str and val in oper_set:
+                left, oper, right = parsed[i-1:i+2]
+                val = calc(left, right, oper)                
+                reduced = parsed[0:i-1] + [val]
 
-    if opr == "+":
-        res = left + right
-    else:
-        res = left * right
+                if i + 2 < len(parsed):
+                    reduced.extend(parsed[i+2:])
+                
+                parsed = reduced
+                i -= 2
+            else :
+                i += 1
+    return parsed[0]
 
-    if res == 216:
-        import pdb;pdb.set_trace()
-
-    if debug:
-        print stack, "=", res
-
-    return res
+def calc(left, right, oper):
+    left, right = int(left), int(right)
+    return left + right if oper == "+" else left * right
 
 
 if __name__ == "__main__":
-    inputs = [line.strip().replace("(", "( ").replace(")", " )").split(" ") for line in open("sample.txt").readlines()]
-    debug = True
-    show = True
-    print calc_expr(['(', '(', '2', '+', '4', '*', '9', ')', '*', '(', '6', '+', '9', '*', '8', '+', '6', ')', '+', '6', ')', '+', '2', '+', '4', '*', '2'], True)
-    #print calc_expr(['1', '+', '(', '2', '*', '3', ')', '+', '(', '4', '*', '(', '5', '+', '6', ')', ')'], False)
-    #print
-    #print calc_expr(['1', '+', '(', '2', '*', '3', ')', '+', '(', '4', '*', '(', '5', '+', '6', ')', ')'], True)
-    #print
-    #print calc_expr(list("(2*2)+1"), True)
-    #print calc_expr(list("(2*2+3"), True)
-    #print "part 1:", part1(inputs)
-    #print "part 2:", part2(inputs)
+    inputs = [line.strip().replace("(", "( ").replace(")", " )").split(" ") for line in open("input.txt").readlines()]
+    print "part 1:", part1(inputs)
+    print "part 2:", part2(inputs)
